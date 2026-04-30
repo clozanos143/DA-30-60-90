@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DA & New Hire Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F7F6F2;--surface:#FFF;--surface2:#F0EEE8;
+  --border:#DEDAD2;--border-strong:#C8C4B8;
+  --text:#1A1916;--text-muted:#6B6860;--text-faint:#A8A59E;
+  --verbal-bg:#E8F0FD;--verbal-text:#1A3A7A;--verbal-border:#B8CCF5;
+  --written-bg:#FDF3E0;--written-text:#7A4A00;--written-border:#F5D98C;
+  --final-bg:#FCEAE8;--final-text:#7A1F1A;--final-border:#F5B8B2;
+  --active-bg:#E8F5EC;--active-text:#1A5C2A;--active-border:#B2DFB8;
+  --term-bg:#FCEAE8;--term-text:#7A1F1A;--term-border:#F5B8B2;
+  --resigned-bg:#F0EEE8;--resigned-text:#4A4840;--resigned-border:#C8C4B8;
+  --comp-bg:#EAF3DE;--comp-text:#27500A;--comp-border:#B2DFB8;
+  --dual-bg:#FFFBEC;--dual-border:#E8C040;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* Header */
+.header{background:var(--text);color:#F7F6F2;padding:20px 32px;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.header h1{font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:500;letter-spacing:-0.02em}
+.header .sub{font-size:11px;color:#A8A59E;margin-top:4px;font-family:'IBM Plex Mono',monospace}
+.header-right{display:flex;gap:20px;flex-wrap:wrap}
+.stat-pill .n{font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:500;line-height:1;text-align:right}
+.stat-pill .l{font-size:11px;color:#6B6860;margin-top:2px;text-align:right}
+
+/* Tabs */
+.tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);padding:0 32px}
+.tab{padding:12px 20px;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;letter-spacing:.04em;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-faint);user-select:none;margin-bottom:-1px;transition:color .15s}
+.tab:hover{color:var(--text-muted)}.tab.active{color:var(--text);border-bottom-color:var(--text)}
+.tab-panel{display:none}.tab-panel.active{display:block}
+
+/* Controls */
+.controls{padding:14px 32px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.search-wrap{position:relative;flex:1;min-width:180px}
+.search-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-faint);pointer-events:none}
+input[type="text"]{width:100%;padding:7px 10px 7px 32px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);outline:none}
+input[type="text"]:focus,input[type="date"]:focus,input[type="number"]:focus,select:focus{border-color:var(--border-strong)}
+input[type="date"],input[type="number"]{padding:7px 10px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);outline:none}
+select{padding:7px 10px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);outline:none;cursor:pointer}
+.btn-add{padding:7px 14px;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;border:1px solid var(--text);border-radius:6px;background:var(--text);color:#F7F6F2;cursor:pointer;white-space:nowrap;letter-spacing:.02em;transition:opacity .15s}
+.btn-add:hover{opacity:.8}
+.count-label{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text-faint);white-space:nowrap}
+.filter-label{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-faint);white-space:nowrap}
+
+/* Table */
+.table-wrap{padding:0 32px 40px;overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead{position:sticky;top:0;z-index:1}
+th{padding:9px 10px;text-align:left;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--text-faint);background:var(--bg);border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none}
+th:hover{color:var(--text-muted)}.th .sa{margin-left:3px;opacity:.35}.th.sorted .sa{opacity:1}
+th.nosort{cursor:default}.th.nosort:hover{color:var(--text-faint)}
+th .sa{margin-left:3px;opacity:.35}.sorted .sa{opacity:1}
+td{padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:top;color:var(--text)}
+tr:hover td{background:var(--surface2)}
+tr:last-child td{border-bottom:none}
+tr.dual-risk td{background:var(--dual-bg)!important;border-left:3px solid var(--dual-border)}
+.name-cell{font-weight:500;font-size:13px}
+.sub-flag{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-family:'IBM Plex Mono',monospace;background:var(--dual-bg);color:#7A5500;border:1px solid var(--dual-border);border-radius:4px;padding:1px 6px;margin-top:3px}
+.progress-bar{display:flex;gap:3px;margin-top:5px}
+.pip{width:18px;height:3px;border-radius:2px;background:var(--border)}.pip.done{background:var(--text)}
+.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:500;border:1px solid transparent;white-space:nowrap;font-family:'IBM Plex Mono',monospace}
+.b-verbal{background:var(--verbal-bg);color:var(--verbal-text);border-color:var(--verbal-border)}
+.b-written{background:var(--written-bg);color:var(--written-text);border-color:var(--written-border)}
+.b-final{background:var(--final-bg);color:var(--final-text);border-color:var(--final-border)}
+.b-active{background:var(--active-bg);color:var(--active-text);border-color:var(--active-border)}
+.b-terminated{background:var(--term-bg);color:var(--term-text);border-color:var(--term-border)}
+.b-resigned{background:var(--resigned-bg);color:var(--resigned-text);border-color:var(--resigned-border)}
+.b-completed{background:var(--comp-bg);color:var(--comp-text);border-color:var(--comp-border)}
+.b-d30{background:var(--verbal-bg);color:var(--verbal-text);border-color:var(--verbal-border)}
+.b-d60{background:var(--written-bg);color:var(--written-text);border-color:var(--written-border)}
+.b-d90{background:var(--final-bg);color:var(--final-text);border-color:var(--final-border)}
+.date-mono{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text-muted)}
+.reason-cell{font-size:12px;color:var(--text-muted);max-width:200px;line-height:1.5}
+.term-type{font-size:11px;color:var(--text-faint);margin-top:3px;font-family:'IBM Plex Mono',monospace}
+.actions{display:flex;gap:4px}
+.action-btn{padding:3px 7px;border:1px solid var(--border);border-radius:4px;background:transparent;color:var(--text-muted);font-size:11px;cursor:pointer;transition:all .1s}
+.action-btn:hover{background:var(--surface2);border-color:var(--border-strong);color:var(--text)}
+.action-btn.del:hover{background:var(--term-bg);border-color:var(--final-border);color:var(--term-text)}
+.empty-state{text-align:center;padding:48px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;font-size:13px}
+.days-cell{font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.7}
+.days-ok{color:var(--active-text)}.days-warn{color:#7A4A00}.days-over{color:var(--term-text)}
+.goal-row{display:flex;flex-direction:column;gap:4px;min-width:130px}
+.goal-item{display:flex;align-items:center;gap:5px}
+.goal-lbl{color:var(--text-faint);font-family:'IBM Plex Mono',monospace;min-width:26px;font-size:10px}
+.goal-bar-wrap{flex:1;height:4px;background:var(--border);border-radius:3px;overflow:hidden}
+.goal-bar{height:100%;border-radius:3px}
+.goal-met .goal-bar{background:#639922}.goal-unmet .goal-bar{background:#E24B4A}.goal-na .goal-bar{background:var(--border-strong)}
+.goal-val{font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text-faint);min-width:20px;text-align:right}
+.phase-track{display:flex;gap:3px;margin-top:5px}
+.phase-seg{flex:1;height:4px;border-radius:2px;background:var(--border)}
+.phase-active{background:#E8A800}.phase-done{background:var(--text)}
+
+/* Goals panel */
+.goals-panel{margin:16px 32px 0;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.gp-header{padding:10px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+.gp-header:hover{background:var(--surface2)}
+.gp-title{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted)}
+.gp-summary{font-size:11px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace}
+.gp-body{display:none;padding:16px;border-top:1px solid var(--border);grid-template-columns:1fr 1fr 1fr;gap:20px}
+.gp-body.open{display:grid}
+.gp-col h4{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;color:var(--text-muted);margin-bottom:10px;letter-spacing:.06em;text-transform:uppercase}
+.ge-row{display:flex;flex-direction:column;gap:3px;margin-bottom:8px}
+.ge-row label{font-size:11px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace}
+.ge-row input{padding:5px 8px;font-size:12px;font-family:'IBM Plex Mono',monospace;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);outline:none;width:100%}
+.ge-row input:focus{border-color:var(--border-strong)}
+
+/* ── UNIFIED MODAL ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(26,25,22,.5);z-index:100;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:26px;width:580px;max-width:96vw;max-height:92vh;overflow-y:auto}
+.modal h2{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:500;margin-bottom:18px}
+
+/* Type picker step */
+.type-picker{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:4px}
+.type-card{border:1.5px solid var(--border);border-radius:8px;padding:16px;cursor:pointer;transition:all .15s;user-select:none}
+.type-card:hover{border-color:var(--border-strong);background:var(--surface2)}
+.type-card.selected{border-color:var(--text);background:var(--surface2)}
+.type-card .tc-title{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:500;margin-bottom:4px}
+.type-card .tc-desc{font-size:12px;color:var(--text-muted);line-height:1.5}
+.picker-next{margin-top:16px;display:flex;justify-content:flex-end}
+
+/* Form sections */
+.form-section{display:none}.form-section.active{display:block}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group.full{grid-column:1/-1}
+.form-group label{font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--text-muted);letter-spacing:.04em;text-transform:uppercase}
+.form-group input,.form-group select,.form-group textarea{padding:7px 10px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);outline:none}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--border-strong)}
+.form-group textarea{resize:vertical;min-height:64px;line-height:1.5}
+.section-divider{grid-column:1/-1;border:none;border-top:1px solid var(--border);margin:4px 0}
+.section-label{grid-column:1/-1;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-faint);margin-bottom:-4px}
+.modal-actions{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:18px}
+.modal-actions-right{display:flex;gap:8px}
+.btn-back{padding:7px 14px;font-family:'IBM Plex Mono',monospace;font-size:12px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text-muted);cursor:pointer}
+.btn-back:hover{background:var(--surface2)}
+.btn-cancel{padding:7px 14px;font-family:'IBM Plex Mono',monospace;font-size:12px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text-muted);cursor:pointer}
+.btn-cancel:hover{background:var(--surface2)}
+.btn-save{padding:7px 14px;font-family:'IBM Plex Mono',monospace;font-size:12px;border:1px solid var(--text);border-radius:6px;background:var(--text);color:#F7F6F2;cursor:pointer}
+.btn-save:hover{opacity:.8}
+.btn-next{padding:7px 14px;font-family:'IBM Plex Mono',monospace;font-size:12px;border:1px solid var(--text);border-radius:6px;background:var(--text);color:#F7F6F2;cursor:pointer}
+.btn-next:hover{opacity:.8}
+.btn-switch{padding:7px 14px;font-family:'IBM Plex Mono',monospace;font-size:12px;border:1px solid var(--written-border);border-radius:6px;background:var(--written-bg);color:var(--written-text);cursor:pointer;transition:opacity .15s}
+.btn-switch:hover{opacity:.8}
+.btn-create{padding:7px 14px;font-family:'IBM Plex Mono',monospace;font-size:12px;border:1px solid var(--active-border);border-radius:6px;background:var(--active-bg);color:var(--active-text);cursor:pointer;transition:opacity .15s}
+.btn-create:hover{opacity:.8}
+.dual-already{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;font-family:'IBM Plex Mono',monospace;font-size:11px;background:var(--dual-bg);color:#7A5500;border:1px solid var(--dual-border);border-radius:6px}
+
+@media print{.controls,.actions,.modal-overlay,.tabs,.goals-panel{display:none!important}.header{-webkit-print-color-adjust:exact;print-color-adjust:exact}.table-wrap{padding:0 16px}.tab-panel{display:block!important}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>// PERFORMANCE &amp; DISCIPLINARY TRACKER</h1>
+    <div class="sub" id="header-date"></div>
+  </div>
+  <div class="header-right">
+    <div class="stat-pill"><div class="n" id="s-da-total">0</div><div class="l">DA records</div></div>
+    <div class="stat-pill"><div class="n" id="s-da-active">0</div><div class="l">Active DAs</div></div>
+    <div class="stat-pill"><div class="n" id="s-nh-active">0</div><div class="l">New hires in period</div></div>
+    <div class="stat-pill"><div class="n" id="s-dual">0</div><div class="l">Dual-risk</div></div>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" id="tab-da" onclick="switchTab('da')">DA RECORDS</div>
+  <div class="tab" id="tab-nh" onclick="switchTab('nh')">30 / 60 / 90 DAY</div>
+</div>
+
+<!-- ══ DA TAB ══════════════════════════════════════════════════════ -->
+<div class="tab-panel active" id="panel-da">
+  <div class="controls">
+    <div class="search-wrap">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="da-search" placeholder="Search name, manager, reason...">
+    </div>
+    <select id="da-fStatus"><option value="">All statuses</option><option>Active</option><option>Terminated</option><option>Resigned</option></select>
+    <select id="da-fStage"><option value="">All stages</option><option value="verbal">Verbal only</option><option value="written">Written</option><option value="final">Final</option></select>
+    <span class="filter-label">Start:</span>
+    <input type="date" id="da-fFrom" style="width:132px">
+    <span class="filter-label">&#8594;</span>
+    <input type="date" id="da-fTo" style="width:132px">
+    <span class="count-label" id="da-count"></span>
+    <button class="btn-add" onclick="openModal(null,'da')">+ ADD RECORD</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th onclick="daSort('name')">Employee <span class="sa">&#8645;</span></th>
+        <th onclick="daSort('startDate')">Start date <span class="sa">&#8645;</span></th>
+        <th onclick="daSort('date')">DA date <span class="sa">&#8645;</span></th>
+        <th onclick="daSort('status')">Status <span class="sa">&#8645;</span></th>
+        <th class="nosort">Manager</th>
+        <th onclick="daSort('stage')">Stage <span class="sa">&#8645;</span></th>
+        <th class="nosort">Verbal</th>
+        <th class="nosort">Written</th>
+        <th class="nosort">Final</th>
+        <th class="nosort">Reason</th>
+        <th onclick="daSort('dual')" style="white-space:nowrap">Dual-risk <span class="sa">&#8645;</span></th>
+        <th class="nosort"></th>
+      </tr></thead>
+      <tbody id="da-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ 30/60/90 TAB ════════════════════════════════════════════════ -->
+<div class="tab-panel" id="panel-nh">
+  <div class="goals-panel">
+    <div class="gp-header" onclick="toggleGoals()">
+      <span class="gp-title">&#9881; Goal thresholds &mdash; click to edit</span>
+      <span class="gp-summary" id="gp-summary"></span>
+    </div>
+    <div class="gp-body" id="gp-body">
+      <div class="gp-col"><h4>Day 1&ndash;30</h4>
+        <div class="ge-row"><label>Min C:S rate (%)</label><input type="number" id="g30cs" value="8" min="0" max="100" onchange="saveGoals()"></div>
+        <div class="ge-row"><label>Min enrollments</label><input type="number" id="g30enroll" value="3" min="0" onchange="saveGoals()"></div>
+        <div class="ge-row"><label>Max absences</label><input type="number" id="g30attend" value="1" min="0" onchange="saveGoals()"></div>
+      </div>
+      <div class="gp-col"><h4>Day 31&ndash;60</h4>
+        <div class="ge-row"><label>Min C:S rate (%)</label><input type="number" id="g60cs" value="10" min="0" max="100" onchange="saveGoals()"></div>
+        <div class="ge-row"><label>Min enrollments</label><input type="number" id="g60enroll" value="5" min="0" onchange="saveGoals()"></div>
+        <div class="ge-row"><label>Max absences</label><input type="number" id="g60attend" value="1" min="0" onchange="saveGoals()"></div>
+      </div>
+      <div class="gp-col"><h4>Day 61&ndash;90</h4>
+        <div class="ge-row"><label>Min C:S rate (%)</label><input type="number" id="g90cs" value="12" min="0" max="100" onchange="saveGoals()"></div>
+        <div class="ge-row"><label>Min enrollments</label><input type="number" id="g90enroll" value="7" min="0" onchange="saveGoals()"></div>
+        <div class="ge-row"><label>Max absences</label><input type="number" id="g90attend" value="2" min="0" onchange="saveGoals()"></div>
+      </div>
+    </div>
+  </div>
+  <div class="controls">
+    <div class="search-wrap">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="nh-search" placeholder="Search name or manager...">
+    </div>
+    <select id="nh-fPhase"><option value="">All phases</option><option value="30">Day 1&ndash;30</option><option value="60">Day 31&ndash;60</option><option value="90">Day 61&ndash;90</option><option value="completed">Completed</option></select>
+    <select id="nh-fDual"><option value="">All employees</option><option value="dual">Dual-risk only</option></select>
+    <span class="count-label" id="nh-count"></span>
+    <button class="btn-add" onclick="openModal(null,'nh')">+ ADD NEW HIRE</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th onclick="nhSort('name')">Employee <span class="sa">&#8645;</span></th>
+        <th onclick="nhSort('startDate')">Start date <span class="sa">&#8645;</span></th>
+        <th class="nosort">Phase</th>
+        <th class="nosort">Days</th>
+        <th class="nosort">Manager</th>
+        <th class="nosort">30-day goals</th>
+        <th class="nosort">60-day goals</th>
+        <th class="nosort">90-day goals</th>
+        <th onclick="nhSort('nhStatus')">Status <span class="sa">&#8645;</span></th>
+        <th class="nosort">Notes</th>
+        <th onclick="nhSort('dual')" style="white-space:nowrap">Dual-risk <span class="sa">&#8645;</span></th>
+        <th class="nosort"></th>
+      </tr></thead>
+      <tbody id="nh-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ UNIFIED MODAL ═══════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-overlay">
+<div class="modal">
+  <h2 id="modal-title">ADD RECORD</h2>
+
+  <!-- Step 1: type picker -->
+  <div class="form-section active" id="step-pick">
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">What type of record is this?</p>
+    <div class="type-picker">
+      <div class="type-card" id="tc-da" onclick="pickType('da')">
+        <div class="tc-title">Disciplinary Action</div>
+        <div class="tc-desc">Verbal, written, or final warning for an existing employee on a performance or conduct issue.</div>
+      </div>
+      <div class="type-card" id="tc-nh" onclick="pickType('nh')">
+        <div class="tc-title">New Hire 30/60/90</div>
+        <div class="tc-desc">Employee in their first 90 days. Track goal checkpoints and phase progress.</div>
+      </div>
+    </div>
+    <div class="picker-next">
+      <button class="btn-next" onclick="advanceFromPicker()">Continue &#8594;</button>
+    </div>
+  </div>
+
+  <!-- Step 2a: DA form -->
+  <div class="form-section" id="step-da">
+    <div class="form-grid">
+      <div class="section-label">Employee info</div>
+      <div class="form-group"><label>Name</label><input id="da-fname" placeholder="Full name"></div>
+      <div class="form-group"><label>Start date</label><input id="da-fstart" type="date"></div>
+      <div class="form-group"><label>DA action date</label><input id="da-fdate" type="date"></div>
+      <div class="form-group"><label>Manager</label><input id="da-fmgr" placeholder="Manager name"></div>
+      <div class="form-group"><label>Employment status</label>
+        <select id="da-fstatus"><option>Active</option><option>Terminated</option><option>Resigned</option></select>
+      </div>
+      <div class="form-group"><label>Termination type</label>
+        <select id="da-ftermtype"><option value="">&#8212; N/A</option><option>Attendance</option><option>Production</option><option>90 day probation</option><option>Performance</option><option>Other</option></select>
+      </div>
+      <hr class="section-divider">
+      <div class="section-label">Disciplinary steps</div>
+      <div class="form-group"><label>Verbal date</label><input id="da-fverbal" type="date"></div>
+      <div class="form-group"><label>Written date</label><input id="da-fwritten" type="date"></div>
+      <div class="form-group"><label>Final date</label><input id="da-ffinal" type="date"></div>
+      <div class="form-group full"><label>Reason / notes</label><textarea id="da-freason" placeholder="Describe the issue..."></textarea></div>
+    </div>
+  </div>
+
+  <!-- Step 2b: New hire form -->
+  <div class="form-section" id="step-nh">
+    <div class="form-grid">
+      <div class="section-label">Employee info</div>
+      <div class="form-group"><label>Name</label><input id="nh-fname" placeholder="Full name"></div>
+      <div class="form-group"><label>Start date</label><input id="nh-fstart" type="date"></div>
+      <div class="form-group"><label>Manager</label><input id="nh-fmgr" placeholder="Manager name"></div>
+      <div class="form-group"><label>Period status</label>
+        <select id="nh-fstatus"><option value="Active">Active</option><option value="Completed">Completed</option><option value="Terminated">Terminated</option></select>
+      </div>
+      <hr class="section-divider">
+      <div class="section-label">30-day checkpoint</div>
+      <div class="form-group"><label>C:S rate (%)</label><input id="nh-f30cs" type="number" min="0" max="100" placeholder="e.g. 9"></div>
+      <div class="form-group"><label>Enrollments</label><input id="nh-f30enroll" type="number" min="0" placeholder="e.g. 4"></div>
+      <div class="form-group"><label>Absences</label><input id="nh-f30attend" type="number" min="0" placeholder="e.g. 0"></div>
+      <div class="form-group"><label>30-day outcome</label>
+        <select id="nh-f30outcome"><option value="">&#8212; Pending</option><option value="met">Met goals</option><option value="unmet">Did not meet</option></select>
+      </div>
+      <hr class="section-divider">
+      <div class="section-label">60-day checkpoint</div>
+      <div class="form-group"><label>C:S rate (%)</label><input id="nh-f60cs" type="number" min="0" max="100" placeholder="e.g. 11"></div>
+      <div class="form-group"><label>Enrollments</label><input id="nh-f60enroll" type="number" min="0" placeholder="e.g. 6"></div>
+      <div class="form-group"><label>Absences</label><input id="nh-f60attend" type="number" min="0" placeholder="e.g. 1"></div>
+      <div class="form-group"><label>60-day outcome</label>
+        <select id="nh-f60outcome"><option value="">&#8212; Pending</option><option value="met">Met goals</option><option value="unmet">Did not meet</option></select>
+      </div>
+      <hr class="section-divider">
+      <div class="section-label">90-day checkpoint</div>
+      <div class="form-group"><label>C:S rate (%)</label><input id="nh-f90cs" type="number" min="0" max="100" placeholder="e.g. 13"></div>
+      <div class="form-group"><label>Enrollments</label><input id="nh-f90enroll" type="number" min="0" placeholder="e.g. 8"></div>
+      <div class="form-group"><label>Absences</label><input id="nh-f90attend" type="number" min="0" placeholder="e.g. 1"></div>
+      <div class="form-group"><label>90-day outcome</label>
+        <select id="nh-f90outcome"><option value="">&#8212; Pending</option><option value="met">Met goals</option><option value="unmet">Did not meet</option></select>
+      </div>
+      <hr class="section-divider">
+      <div class="form-group full"><label>Notes</label><textarea id="nh-fnotes" placeholder="Any additional context..."></textarea></div>
+    </div>
+  </div>
+
+  <div class="modal-actions" id="modal-actions">
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn-back" id="btn-back" onclick="backToPicker()" style="visibility:hidden">&#8592; Back</button>
+      <button class="btn-switch" id="btn-switch" onclick="switchType()" style="display:none">&#8646; Move to 30/60/90</button>
+      <button class="btn-create" id="btn-create" onclick="createMatchingRecord()" style="display:none">+ Create matching record</button>
+      <span class="dual-already" id="dual-already" style="display:none">&#9888; Already dual-risk</span>
+    </div>
+    <div class="modal-actions-right">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" id="btn-save" onclick="saveRecord()" style="display:none">Save record</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+// ── DATA ─────────────────────────────────────────────────────────────
+let daRecords = [
+  {id:1,name:'John Murphy',startDate:'2025-06-15',date:'2026-02-27',status:'Terminated',termType:'Attendance',manager:'Sydney West',verbal:'2026-03-04',written:'',final:'',reason:'C:S Below 8%'},
+  {id:2,name:'Troy Gaines',startDate:'2025-08-01',date:'2026-03-02',status:'Terminated',termType:'Production',manager:'Brooke Law',verbal:'2026-03-09',written:'',final:'',reason:'C:S Below 8% (improved w1, no written)'},
+  {id:3,name:'Patrick McCormack',startDate:'2025-09-10',date:'2026-03-03',status:'Resigned',termType:'',manager:'Ruben Hakobyan',verbal:'2026-02-25',written:'2026-03-02',final:'',reason:'Improved 100% w3 - no final'},
+  {id:4,name:'Daniel Rodriguez',startDate:'2025-11-03',date:'2026-03-06',status:'Resigned',termType:'',manager:'Justin Sherman',verbal:'',written:'2026-03-04',final:'',reason:'Failure to follow proper documentation procedures'},
+  {id:5,name:'Shayna Williams',startDate:'2025-12-15',date:'2026-03-23',status:'Terminated',termType:'90 day probation',manager:'Ted Kelhoffer',verbal:'',written:'2026-03-29',final:'2026-04-01',reason:'Improper document and UW & dispositioning incorrectly'},
+  {id:6,name:'Amy Benjamin',startDate:'2025-12-15',date:'2026-03-23',status:'Terminated',termType:'90 day probation',manager:'Shayna Williams',verbal:'',written:'2026-03-16',final:'2026-03-16',reason:'Written/Final for Performance/Production in first 30 days'},
+  {id:7,name:'Michael Dulatre',startDate:'2026-01-06',date:'2026-04-12',status:'Resigned',termType:'',manager:'Amy Benjamin',verbal:'',written:'2026-03-16',final:'2026-03-16',reason:'Written/Final for Performance/Production in first 30 days'},
+  {id:8,name:'Angela Starr',startDate:'2024-03-01',date:'2026-03-30',status:'Active',termType:'',manager:'Angela Starr',verbal:'2026-03-30',written:'2026-04-01',final:'',reason:'Not attending events/marking complete without completing them'},
+  {id:9,name:'Brooke Law',startDate:'2023-07-17',date:'2026-04-01',status:'Active',termType:'',manager:'Brooke Law',verbal:'',written:'2026-04-01',final:'',reason:'C:S Below 8% - month of March'},
+  {id:10,name:'Ruben Hakobyan',startDate:'2023-11-06',date:'2026-04-01',status:'Active',termType:'',manager:'Ruben Hakobyan',verbal:'',written:'',final:'2026-04-01',reason:'Production below expectations post 90 day probation'},
+  {id:11,name:"Luis D'Andrade",startDate:'2024-05-20',date:'2026-04-03',status:'Active',termType:'',manager:"Luis D'Andrade",verbal:'',written:'2026-04-03',final:'',reason:'Enrollment transfers low - 3 for Month of March'},
+  {id:12,name:'Angela Starr',startDate:'2024-03-01',date:'2026-04-09',status:'Active',termType:'',manager:'Angela Starr',verbal:'',written:'2026-04-09',final:'',reason:'Enrolled Lower Debts - 2 leads not properly transferred'},
+  {id:13,name:'Kraig Obarski',startDate:'2024-10-14',date:'2026-04-27',status:'Active',termType:'',manager:'Kraig Obarski',verbal:'2026-04-27',written:'2026-04-28',final:'2026-04-28',reason:'Verbal DNC and Lead dispo issues - turned into a written'},
+  {id:14,name:'Andrew Romagnoli',startDate:'2025-02-03',date:'2026-04-28',status:'Active',termType:'',manager:'Andrew Romagnoli',verbal:'',written:'2026-04-28',final:'',reason:'Dispositioning uncontacted leads with scheduled call backs - impacts C:S and call cadence, will be non-issue moving forward'},
+];
+let daNext=15;
+
+let nhRecords = [
+  {id:1,name:'Shayna Williams',startDate:'2025-12-15',manager:'Ted Kelhoffer',nhStatus:'Terminated',
+   d30:{cs:'6',enroll:'2',attend:'2',outcome:'unmet'},d60:{cs:'',enroll:'',attend:'',outcome:''},d90:{cs:'',enroll:'',attend:'',outcome:''},notes:'Terminated 90 day probation. DA issued during period.'},
+  {id:2,name:'Amy Benjamin',startDate:'2025-12-15',manager:'Shayna Williams',nhStatus:'Terminated',
+   d30:{cs:'5',enroll:'2',attend:'1',outcome:'unmet'},d60:{cs:'',enroll:'',attend:'',outcome:''},d90:{cs:'',enroll:'',attend:'',outcome:''},notes:'Terminated 90 day probation. Written/Final first 30 days.'},
+  {id:3,name:'Michael Dulatre',startDate:'2026-01-06',manager:'Amy Benjamin',nhStatus:'Terminated',
+   d30:{cs:'7',enroll:'3',attend:'0',outcome:'unmet'},d60:{cs:'',enroll:'',attend:'',outcome:''},d90:{cs:'',enroll:'',attend:'',outcome:''},notes:'Resigned during period. Written/Final issued.'},
+];
+let nhNext=4;
+
+let goals={30:{cs:8,enroll:3,attend:1},60:{cs:10,enroll:5,attend:1},90:{cs:12,enroll:7,attend:2}};
+
+// ── STATE ─────────────────────────────────────────────────────────────
+let editId=null, editType=null, pickedType=null;
+let daCol='date', daDir=-1, nhCol='startDate', nhDir=-1;
+
+// ── GOALS ─────────────────────────────────────────────────────────────
+function saveGoals(){
+  goals[30]={cs:+v('g30cs'),enroll:+v('g30enroll'),attend:+v('g30attend')};
+  goals[60]={cs:+v('g60cs'),enroll:+v('g60enroll'),attend:+v('g60attend')};
+  goals[90]={cs:+v('g90cs'),enroll:+v('g90enroll'),attend:+v('g90attend')};
+  updateGoalSummary(); renderNH();
+}
+function updateGoalSummary(){
+  el('gp-summary').textContent=`30d: C:S\u2265${goals[30].cs}% / ${goals[30].enroll} enroll \u00b7 60d: C:S\u2265${goals[60].cs}% / ${goals[60].enroll} enroll \u00b7 90d: C:S\u2265${goals[90].cs}% / ${goals[90].enroll} enroll`;
+}
+function toggleGoals(){el('gp-body').classList.toggle('open');}
+
+// ── HELPERS ───────────────────────────────────────────────────────────
+const el=id=>document.getElementById(id);
+const v=id=>el(id).value;
+function fmt(d){if(!d)return'\u2014';const[y,m,day]=d.split('-');return`${m}/${day}/${y.slice(2)}`;}
+function daysSince(d){if(!d)return null;return Math.floor((Date.now()-new Date(d+'T00:00:00').getTime())/86400000);}
+function nhPhase(r){
+  if(!r.startDate)return null;
+  if(r.nhStatus==='Completed'||r.nhStatus==='Terminated')return'completed';
+  const d=daysSince(r.startDate);
+  if(d<=30)return'30';if(d<=60)return'60';if(d<=90)return'90';
+  return'completed';
+}
+function isDual(daR){return daR.status==='Active'&&daysSince(daR.startDate)<=90&&daysSince(daR.startDate)>=0;}
+function nhOnDA(nhR){return daRecords.some(r=>r.name.toLowerCase()===nhR.name.toLowerCase()&&r.status==='Active');}
+function daStage(r){if(r.final)return'final';if(r.written)return'written';if(r.verbal)return'verbal';return'none';}
+function daStageOrd(r){return{final:3,written:2,verbal:1,none:0}[daStage(r)];}
+
+function goalBar(val,target,above,lbl){
+  const nv=val===''||val==null?null:+val;
+  if(nv===null)return`<div class="goal-item goal-na"><span class="goal-lbl">${lbl}</span><div class="goal-bar-wrap"><div class="goal-bar" style="width:0"></div></div><span class="goal-val">?</span></div>`;
+  const met=above?nv>=target:nv<=target;
+  const pct=above?Math.min(100,Math.round(nv/target*100)):Math.min(100,target===0?100:Math.round((2*target-nv)/target*50));
+  return`<div class="goal-item ${met?'goal-met':'goal-unmet'}"><span class="goal-lbl">${lbl}</span><div class="goal-bar-wrap"><div class="goal-bar" style="width:${pct}%"></div></div><span class="goal-val">${nv}</span></div>`;
+}
+function checkpointCell(d,p){
+  if(!d)return`<span style="font-size:11px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace">\u2014</span>`;
+  const empty=d.cs===''&&d.enroll===''&&d.attend==='';
+  if(empty)return`<span style="font-size:11px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace">pending</span>`;
+  const g=goals[p];
+  return`<div class="goal-row">${goalBar(d.cs,g.cs,true,'C:S')}${goalBar(d.enroll,g.enroll,true,'Enr')}${goalBar(d.attend,g.attend,false,'Abs')}${d.outcome?`<div style="margin-top:2px">${d.outcome==='met'?'<span class="badge b-active" style="font-size:10px;padding:1px 5px">\u2713 met</span>':'<span class="badge b-final" style="font-size:10px;padding:1px 5px">\u2717 unmet</span>'}</div>`:''}</div>`;
+}
+function phaseTrack(r){
+  const d=daysSince(r.startDate)||0,done=r.nhStatus==='Completed'||r.nhStatus==='Terminated';
+  const s=n=>{let c='phase-seg';if(done||d>n)c+=' phase-done';else if((n===30&&d<=30)||(n===60&&d>30&&d<=60)||(n===90&&d>60&&d<=90))c+=' phase-active';return`<div class="${c}"></div>`;};
+  return`<div class="phase-track">${s(30)}${s(60)}${s(90)}</div>`;
+}
+function phaseBadge(r){
+  const p=nhPhase(r);if(!p)return'\u2014';
+  if(p==='completed')return'<span class="badge b-completed">Completed</span>';
+  const m={'30':['b-d30','Day 1\u201330'],'60':['b-d60','Day 31\u201360'],'90':['b-d90','Day 61\u201390']};
+  return`<span class="badge ${m[p][0]}">${m[p][1]}</span>`;
+}
+function daysCell(r){
+  if(!r.startDate)return'\u2014';
+  const d=daysSince(r.startDate);
+  if(d===null)return'\u2014';
+  if(r.nhStatus==='Completed'||r.nhStatus==='Terminated')return`<span class="date-mono">\u2014</span>`;
+  const rem=90-d;
+  if(rem<0)return`<span class="days-cell days-over">${d}d elapsed<br><span style="font-size:10px">${Math.abs(rem)}d past 90</span></span>`;
+  return`<span class="days-cell ${rem<=10?'days-warn':'days-ok'}">${d}d elapsed<br><span style="font-size:10px;color:var(--text-faint)">${rem}d left</span></span>`;
+}
+
+// ── TABS ──────────────────────────────────────────────────────────────
+function switchTab(t){
+  ['da','nh'].forEach(id=>{el(`tab-${id}`).classList.toggle('active',id===t);el(`panel-${id}`).classList.toggle('active',id===t);});
+}
+
+// ── DA RENDER ─────────────────────────────────────────────────────────
+function daSort(col){daDir=daCol===col?daDir*-1:-1;daCol=col;document.querySelectorAll('#panel-da th').forEach(t=>t.classList.remove('sorted'));event.currentTarget.classList.add('sorted');renderDA();}
+
+function renderDA(){
+  const q=v('da-search').toLowerCase(),fs=v('da-fStatus'),fst=v('da-fStage'),from=v('da-fFrom'),to=v('da-fTo');
+  let data=daRecords.filter(r=>{
+    if(fs&&r.status!==fs)return false;
+    if(fst&&daStage(r)!==fst)return false;
+    if(from&&r.startDate&&r.startDate<from)return false;
+    if(to&&r.startDate&&r.startDate>to)return false;
+    if(q&&!(r.name+r.manager+r.reason+r.status+r.termType).toLowerCase().includes(q))return false;
+    return true;
+  });
+  data.sort((a,b)=>{let av,bv;if(daCol==='name'){av=a.name;bv=b.name}else if(daCol==='startDate'){av=a.startDate||'';bv=b.startDate||''}else if(daCol==='date'){av=a.date;bv=b.date}else if(daCol==='status'){av=a.status;bv=b.status}else if(daCol==='stage'){av=daStageOrd(a);bv=daStageOrd(b)}else if(daCol==='dual'){av=isDual(a)?1:0;bv=isDual(b)?1:0}else{av=a.date;bv=b.date}return av<bv?-daDir:av>bv?daDir:0;});
+  el('da-count').textContent=`${data.length} record${data.length!==1?'s':''}`;
+  const tb=el('da-tbody');
+  if(!data.length){tb.innerHTML=`<tr><td colspan="12" class="empty-state">No records match your filters.</td></tr>`;updateStats();return;}
+  tb.innerHTML=data.map(r=>{
+    const dual=isDual(r);
+    const scls={final:'b-final',written:'b-written',verbal:'b-verbal'}[daStage(r)]||'';
+    const slbl={final:'Final',written:'Written',verbal:'Verbal'}[daStage(r)]||'\u2014';
+    const stcls={Terminated:'b-terminated',Resigned:'b-resigned',Active:'b-active'}[r.status]||'';
+    const pips=`<div class="progress-bar"><div class="pip ${r.verbal?'done':''}" title="Verbal"></div><div class="pip ${r.written?'done':''}" title="Written"></div><div class="pip ${r.final?'done':''}" title="Final"></div></div>`;
+    return`<tr${dual?' class="dual-risk"':''}>
+      <td><div class="name-cell">${r.name}</div>${dual?'<span class="sub-flag">\u26a0 new hire + DA</span>':''}${pips}</td>
+      <td><span class="date-mono">${fmt(r.startDate)}</span></td>
+      <td><span class="date-mono">${fmt(r.date)}</span></td>
+      <td><span class="badge ${stcls}">${r.status}</span>${r.termType?`<div class="term-type">${r.termType}</div>`:''}</td>
+      <td style="font-size:12px;color:var(--text-muted)">${r.manager||'\u2014'}</td>
+      <td>${scls?`<span class="badge ${scls}">${slbl}</span>`:'\u2014'}</td>
+      <td><span class="date-mono">${fmt(r.verbal)}</span></td>
+      <td><span class="date-mono">${fmt(r.written)}</span></td>
+      <td><span class="date-mono">${fmt(r.final)}</span></td>
+      <td><div class="reason-cell">${r.reason||'\u2014'}</div></td>
+      <td>${dual?'<span class=\"badge b-final\" style=\"font-size:11px\">Yes</span>':'<span style=\"font-size:12px;font-family:IBM Plex Mono,monospace;color:var(--text-faint)\">No</span>'}</td>
+      <td><div class="actions"><button class="action-btn" onclick="openModal(${r.id},'da')">Edit</button><button class="action-btn del" onclick="deleteDA(${r.id})">\u2715</button></div></td>
+    </tr>`;
+  }).join('');
+  updateStats();
+}
+
+// ── NH RENDER ─────────────────────────────────────────────────────────
+function nhSort(col){nhDir=nhCol===col?nhDir*-1:-1;nhCol=col;document.querySelectorAll('#panel-nh th').forEach(t=>t.classList.remove('sorted'));event.currentTarget.classList.add('sorted');renderNH();}
+
+function renderNH(){
+  const q=v('nh-search').toLowerCase(),fp=v('nh-fPhase'),fd=v('nh-fDual');
+  let data=nhRecords.filter(r=>{
+    if(fp&&nhPhase(r)!==fp)return false;
+    if(fd==='dual'&&!nhOnDA(r))return false;
+    if(q&&!(r.name+r.manager+(r.notes||'')).toLowerCase().includes(q))return false;
+    return true;
+  });
+  data.sort((a,b)=>{let av,bv;if(nhCol==='name'){av=a.name;bv=b.name}else if(nhCol==='startDate'){av=a.startDate||'';bv=b.startDate||''}else if(nhCol==='nhStatus'){av=a.nhStatus;bv=b.nhStatus}else if(nhCol==='dual'){av=nhOnDA(a)?1:0;bv=nhOnDA(b)?1:0}else{av=a.startDate||'';bv=b.startDate||''}return av<bv?-nhDir:av>bv?nhDir:0;});
+  el('nh-count').textContent=`${data.length} record${data.length!==1?'s':''}`;
+  const tb=el('nh-tbody');
+  if(!data.length){tb.innerHTML=`<tr><td colspan="12" class="empty-state">No records match your filters.</td></tr>`;updateStats();return;}
+  tb.innerHTML=data.map(r=>{
+    const dual=nhOnDA(r);
+    const stcls=r.nhStatus==='Completed'?'b-completed':r.nhStatus==='Terminated'?'b-terminated':'b-active';
+    return`<tr${dual?' class="dual-risk"':''}>
+      <td><div class="name-cell">${r.name}</div>${dual?'<span class="sub-flag">\u26a0 also on DA</span>':''}</td>
+      <td><span class="date-mono">${fmt(r.startDate)}</span></td>
+      <td>${phaseBadge(r)}${phaseTrack(r)}</td>
+      <td>${daysCell(r)}</td>
+      <td style="font-size:12px;color:var(--text-muted)">${r.manager||'\u2014'}</td>
+      <td>${checkpointCell(r.d30,30)}</td>
+      <td>${checkpointCell(r.d60,60)}</td>
+      <td>${checkpointCell(r.d90,90)}</td>
+      <td><span class="badge ${stcls}">${r.nhStatus}</span></td>
+      <td><div class="reason-cell">${r.notes||'\u2014'}</div></td>
+      <td>${dual?'<span class=\"badge b-final\" style=\"font-size:11px\">Yes</span>':'<span style=\"font-size:12px;font-family:IBM Plex Mono,monospace;color:var(--text-faint)\">No</span>'}</td>
+      <td><div class="actions"><button class="action-btn" onclick="openModal(${r.id},'nh')">Edit</button><button class="action-btn del" onclick="deleteNH(${r.id})">\u2715</button></div></td>
+    </tr>`;
+  }).join('');
+  updateStats();
+}
+
+// ── STATS ─────────────────────────────────────────────────────────────
+function updateStats(){
+  el('s-da-total').textContent=daRecords.length;
+  el('s-da-active').textContent=daRecords.filter(r=>r.status==='Active').length;
+  el('s-nh-active').textContent=nhRecords.filter(r=>r.nhStatus==='Active').length;
+  const names=new Set([...daRecords.filter(isDual).map(r=>r.name.toLowerCase()),...nhRecords.filter(nhOnDA).map(r=>r.name.toLowerCase())]);
+  el('s-dual').textContent=names.size;
+}
+
+// ── MODAL ─────────────────────────────────────────────────────────────
+function openModal(id=null, type=null){
+  editId=id; editType=type; pickedType=type;
+
+  // Reset to picker step unless editing (type already known)
+  const isEdit=id!==null;
+
+  // Show/hide sections
+  el('step-pick').classList.toggle('active',!isEdit);
+  el('step-da').classList.toggle('active',isEdit&&type==='da');
+  el('step-nh').classList.toggle('active',isEdit&&type==='nh');
+  el('btn-back').style.visibility=isEdit?'hidden':'visible';
+  el('btn-save').style.display=isEdit?'inline-block':'none';
+  if(isEdit){
+    el('btn-switch').style.display='inline-block';
+    el('btn-switch').textContent=type==='da'?'⇆ Move to 30/60/90':'⇆ Move to DA';
+    // Check if matching record already exists
+    const rec=type==='da'?daRecords.find(x=>x.id===id):nhRecords.find(x=>x.id===id);
+    const recName=(rec?.name||'').toLowerCase();
+    const hasMatch=type==='da'
+      ? nhRecords.some(r=>r.name.toLowerCase()===recName)
+      : daRecords.some(r=>r.name.toLowerCase()===recName&&r.status==='Active');
+    el('btn-create').style.display=hasMatch?'none':'inline-block';
+    el('btn-create').textContent=type==='da'?'+ Create 30/60/90 record':'+ Create DA record';
+    el('dual-already').style.display=hasMatch?'inline-flex':'none';
+  } else {
+    el('btn-switch').style.display='none';
+    el('btn-create').style.display='none';
+    el('dual-already').style.display='none';
+  }
+  el('modal-title').textContent=isEdit?(type==='da'?'EDIT DA RECORD':'EDIT NEW HIRE'):'ADD RECORD';
+
+  // Reset type card selection
+  el('tc-da').classList.remove('selected');el('tc-nh').classList.remove('selected');
+  if(type){el(`tc-${type}`).classList.add('selected');}
+
+  if(isEdit&&type==='da'){
+    const r=daRecords.find(x=>x.id===id);
+    if(r){
+      el('da-fname').value=r.name;el('da-fstart').value=r.startDate||'';el('da-fdate').value=r.date||'';
+      el('da-fmgr').value=r.manager||'';el('da-fstatus').value=r.status;el('da-ftermtype').value=r.termType||'';
+      el('da-fverbal').value=r.verbal||'';el('da-fwritten').value=r.written||'';el('da-ffinal').value=r.final||'';
+      el('da-freason').value=r.reason||'';
+    }
+  } else if(isEdit&&type==='nh'){
+    const r=nhRecords.find(x=>x.id===id);
+    if(r){
+      el('nh-fname').value=r.name;el('nh-fstart').value=r.startDate||'';el('nh-fmgr').value=r.manager||'';el('nh-fstatus').value=r.nhStatus;
+      [30,60,90].forEach(p=>['cs','enroll','attend','outcome'].forEach(f=>{el(`nh-f${p}${f}`).value=r[`d${p}`]?r[`d${p}`][f]||'':'';}));
+      el('nh-fnotes').value=r.notes||'';
+    }
+  } else if(!isEdit){
+    // Clear DA form
+    ['da-fname','da-fstart','da-fdate','da-fmgr','da-fverbal','da-fwritten','da-ffinal','da-freason'].forEach(id=>el(id).value='');
+    el('da-fstatus').value='Active';el('da-ftermtype').value='';
+    // Clear NH form
+    ['nh-fname','nh-fstart','nh-fmgr'].forEach(id=>el(id).value='');
+    el('nh-fstatus').value='Active';
+    [30,60,90].forEach(p=>['cs','enroll','attend'].forEach(f=>el(`nh-f${p}${f}`).value=''));
+    [30,60,90].forEach(p=>el(`nh-f${p}outcome`).value='');
+    el('nh-fnotes').value='';
+  }
+
+  el('modal-overlay').classList.add('open');
+}
+
+function pickType(t){
+  pickedType=t;
+  el('tc-da').classList.toggle('selected',t==='da');
+  el('tc-nh').classList.toggle('selected',t==='nh');
+}
+
+function advanceFromPicker(){
+  if(!pickedType){alert('Please select a record type.');return;}
+  el('step-pick').classList.remove('active');
+  el(`step-${pickedType}`).classList.add('active');
+  el('btn-back').style.visibility='visible';
+  el('btn-save').style.display='inline-block';
+  el('modal-title').textContent=pickedType==='da'?'ADD DA RECORD':'ADD NEW HIRE';
+}
+
+function backToPicker(){
+  el('step-da').classList.remove('active');el('step-nh').classList.remove('active');
+  el('step-pick').classList.add('active');
+  el('btn-back').style.visibility='hidden';
+  el('btn-save').style.display='none';
+  el('modal-title').textContent='ADD RECORD';
+}
+
+function closeModal(){el('modal-overlay').classList.remove('open');editId=null;editType=null;pickedType=null;}
+
+function switchType(){
+  if(!editId||!editType)return;
+  const newType=editType==='da'?'nh':'da';
+  // Grab shared fields from current form
+  const name=el(editType+'-fname').value.trim()||'Unknown';
+  const startDate=editType==='da'?el('da-fstart').value:el('nh-fstart').value;
+  const manager=editType==='da'?el('da-fmgr').value.trim():el('nh-fmgr').value.trim();
+  // Remove from current list
+  if(editType==='da'){daRecords=daRecords.filter(r=>r.id!==editId);}
+  else{nhRecords=nhRecords.filter(r=>r.id!==editId);}
+  // Build new record with shared fields pre-filled, blank type-specific fields
+  if(newType==='nh'){
+    const rec={id:nhNext++,name,startDate,manager,nhStatus:'Active',
+      d30:{cs:'',enroll:'',attend:'',outcome:''},
+      d60:{cs:'',enroll:'',attend:'',outcome:''},
+      d90:{cs:'',enroll:'',attend:'',outcome:''},notes:''};
+    nhRecords.push(rec);
+  } else {
+    const rec={id:daNext++,name,startDate,date:'',manager,status:'Active',termType:'',verbal:'',written:'',final:'',reason:''};
+    daRecords.push(rec);
+  }
+  closeModal();renderDA();renderNH();
+  // Open the new record for immediate editing
+  const targetList=newType==='da'?daRecords:nhRecords;
+  const newRec=targetList[targetList.length-1];
+  // Switch to the right tab first
+  switchTab(newType);
+  setTimeout(()=>openModal(newRec.id,newType),50);
+}
+
+function createMatchingRecord(){
+  if(!editId||!editType)return;
+  const srcRec=editType==='da'?daRecords.find(r=>r.id===editId):nhRecords.find(r=>r.id===editId);
+  if(!srcRec)return;
+  const newType=editType==='da'?'nh':'da';
+  // Pre-fill shared fields
+  const name=srcRec.name;
+  const startDate=srcRec.startDate||'';
+  const manager=srcRec.manager||'';
+  closeModal();
+  switchTab(newType);
+  // Small delay so tab switch completes, then open blank form pre-filled
+  setTimeout(()=>{
+    // Open add modal for the new type
+    openModal(null, null);
+    pickedType=newType;
+    el('tc-da').classList.toggle('selected',newType==='da');
+    el('tc-nh').classList.toggle('selected',newType==='nh');
+    // Skip picker, go straight to form
+    el('step-pick').classList.remove('active');
+    el(`step-${newType}`).classList.add('active');
+    el('btn-back').style.visibility='visible';
+    el('btn-save').style.display='inline-block';
+    el('btn-create').style.display='none';
+    el('dual-already').style.display='none';
+    el('modal-title').textContent=newType==='da'?'ADD DA RECORD':'ADD NEW HIRE';
+    // Pre-fill shared fields
+    if(newType==='da'){
+      el('da-fname').value=name;
+      el('da-fstart').value=startDate;
+      el('da-fmgr').value=manager;
+      el('da-fstatus').value='Active';
+    } else {
+      el('nh-fname').value=name;
+      el('nh-fstart').value=startDate;
+      el('nh-fmgr').value=manager;
+      el('nh-fstatus').value='Active';
+    }
+  },50);
+}
+
+function saveRecord(){
+  const type=editType||pickedType;
+  if(type==='da'){
+    const rec={id:editId||daNext++,name:el('da-fname').value.trim()||'Unknown',startDate:el('da-fstart').value,date:el('da-fdate').value,manager:el('da-fmgr').value.trim(),status:el('da-fstatus').value,termType:el('da-ftermtype').value,verbal:el('da-fverbal').value,written:el('da-fwritten').value,final:el('da-ffinal').value,reason:el('da-freason').value.trim()};
+    if(editId){daRecords=daRecords.map(r=>r.id===editId?rec:r);}else{daRecords.push(rec);}
+  } else {
+    const gv=(p,f)=>el(`nh-f${p}${f}`).value;
+    const rec={id:editId||nhNext++,name:el('nh-fname').value.trim()||'Unknown',startDate:el('nh-fstart').value,manager:el('nh-fmgr').value.trim(),nhStatus:el('nh-fstatus').value,d30:{cs:gv(30,'cs'),enroll:gv(30,'enroll'),attend:gv(30,'attend'),outcome:gv(30,'outcome')},d60:{cs:gv(60,'cs'),enroll:gv(60,'enroll'),attend:gv(60,'attend'),outcome:gv(60,'outcome')},d90:{cs:gv(90,'cs'),enroll:gv(90,'enroll'),attend:gv(90,'attend'),outcome:gv(90,'outcome')},notes:el('nh-fnotes').value.trim()};
+    if(editId){nhRecords=nhRecords.map(r=>r.id===editId?rec:r);}else{nhRecords.push(rec);}
+  }
+  closeModal();renderDA();renderNH();
+}
+
+function deleteDA(id){if(confirm('Remove this DA record?')){daRecords=daRecords.filter(r=>r.id!==id);renderDA();renderNH();}}
+function deleteNH(id){if(confirm('Remove this new hire record?')){nhRecords=nhRecords.filter(r=>r.id!==id);renderNH();updateStats();}}
+
+// ── LISTENERS ─────────────────────────────────────────────────────────
+['da-search','da-fStatus','da-fStage','da-fFrom','da-fTo'].forEach(id=>{el(id).addEventListener(el(id).type==='text'?'input':'change',renderDA);});
+['nh-search','nh-fPhase','nh-fDual'].forEach(id=>{el(id).addEventListener(el(id).type==='text'?'input':'change',renderNH);});
+el('modal-overlay').addEventListener('click',e=>{if(e.target===el('modal-overlay'))closeModal();});
+
+// ── INIT ──────────────────────────────────────────────────────────────
+el('header-date').textContent=`Last updated: ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}`;
+updateGoalSummary();renderDA();renderNH();
+</script>
+</body>
+</html>
